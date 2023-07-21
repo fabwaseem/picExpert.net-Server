@@ -27,6 +27,7 @@ mongoose
 const analyticsSchema = mongoose.Schema({
   totalImagesResized: Number,
   totalSizeOfResizedImages: Number,
+  totalUsers: Number,
 });
 
 const Analytics = mongoose.model("Analytics", analyticsSchema);
@@ -40,6 +41,7 @@ app.post("/analytics", async (req, res) => {
   const analytics = new Analytics({
     totalImagesResized,
     totalSizeOfResizedImages,
+    totalUsers: 1,
   });
 
   try {
@@ -47,7 +49,7 @@ app.post("/analytics", async (req, res) => {
     if (existingAnalytics) {
       existingAnalytics.totalImagesResized += totalImagesResized;
       existingAnalytics.totalSizeOfResizedImages += totalSizeOfResizedImages;
-      console.log(existingAnalytics);
+      existingAnalytics.totalUsers += 1;
       await existingAnalytics.save();
       return res
         .status(200)
