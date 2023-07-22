@@ -3,9 +3,17 @@ import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import analyticsRoutes from "./Routes/AnalyticsRoute.js";
+import contactRoutes from "./Routes/ContactRoute.js";
+import axios from "axios";
 
 const app = express();
 dotenv.config();
+
+const corsOptions = {
+  origin: "https://picexpert.net/",
+  credentials: true,
+};
 
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
@@ -24,90 +32,24 @@ mongoose
   )
   .catch((error) => console.log(error.message));
 
-const analyticsSchema = mongoose.Schema({
-  totalImagesResized: Number,
-  totalSizeOfResizedImages: Number,
-  totalUsers: Number,
-});
+app.use("/analytics", analyticsRoutes);
+app.use("/contact", contactRoutes);
 
-const Analytics = mongoose.model("Analytics", analyticsSchema);
-
-app.post("/analytics", async (req, res) => {
-  let { totalImagesResized, totalSizeOfResizedImages } = req.body;
-  if (!totalImagesResized || !totalSizeOfResizedImages)
-    return res.status(400).json({ message: "Invalid data" });
-  totalImagesResized = parseInt(totalImagesResized);
-  totalSizeOfResizedImages = parseInt(totalSizeOfResizedImages);
-  const analytics = new Analytics({
-    totalImagesResized,
-    totalSizeOfResizedImages,
-    totalUsers: 1,
-  });
-
-  try {
-    const existingAnalytics = await Analytics.findOne();
-    if (existingAnalytics) {
-      existingAnalytics.totalImagesResized += totalImagesResized;
-      existingAnalytics.totalSizeOfResizedImages += totalSizeOfResizedImages;
-      existingAnalytics.totalUsers += 1;
-      await existingAnalytics.save();
-      return res
-        .status(200)
-        .json({ message: "Analytics updated successfully" });
-    }
-    await analytics.save();
-    return res.status(200).json({ message: "Analytics created successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Something went wrong" });
+app.get("/fetch-image", async (req, res) => {
+  const { url } = req.query;
+  if (!url) {
+    return res.status(400).json({ message: "URL is required" });
   }
-});
-
-app.get("/analytics", async (req, res) => {
   try {
-    const analytics = await Analytics.findOne();
-    if (!analytics)
-      return res.status(404).json({ message: "Analytics not found" });
-    return res.status(200).json(analytics);
+    const response = await axios.get(url, { responseType: "arraybuffer" });
+    const contentType = response.headers["content-type"];
+    const buffer = Buffer.from(response.data, "base64");
+    res.set("Content-Type", contentType);
+    res.send(buffer);
   } catch (error) {
-    return res.status(500).json({ message: "Something went wrong" });
-  }
-});
-
-const contactSchema = mongoose.Schema({
-  firstName: String,
-  lastName: String,
-  email: String,
-  phone: String,
-  message: String,
-});
-
-const Contact = mongoose.model("Contact", contactSchema);
-
-app.post("/contact", async (req, res) => {
-  const { firstName, lastName, email, phone, message } = req.body;
-
-  // Validate that required fields are provided
-  if (!firstName || !lastName || !email || !message) {
     return res
-      .status(400)
-      .json({ message: "Please fill in all required fields" });
-  }
-
-  const contact = new Contact({
-    firstName,
-    lastName,
-    email,
-    phone,
-    message,
-  });
-
-  try {
-    await contact.save();
-    return res
-      .status(200)
-      .json({ message: "Contact form data saved successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Something went wrong" });
+      .status(403)
+      .json({ message: "Failed to fetch image from the provided URL." });
   }
 });
 
