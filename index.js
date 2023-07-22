@@ -11,7 +11,7 @@ const app = express();
 dotenv.config();
 
 const corsOptions = {
-  origin: "https://picexpert.net/",
+  origin: "https://picexpert.net",
   credentials: true,
 };
 
