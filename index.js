@@ -12,12 +12,11 @@ dotenv.config();
 
 const corsOptions = {
   origin: "https://picexpert.net",
-  credentials: true,
 };
 
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
-app.use(cors(corsOptions));
+app.use(cors());
 
 const port = process.env.PORT || 5000;
 mongoose
